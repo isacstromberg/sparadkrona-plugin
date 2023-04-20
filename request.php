@@ -94,7 +94,7 @@ add_action('publish_post_once_event', 'create_new_post');
 // Schedule the CRON event
 schedule_cron_event();
 
-/*$open_ai = new OpenAi('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');
+/*$open_ai = new OpenAi('');
 //$prompt = $_GET['prompt'];
 $prompt = "Ge mig ett tips om hur jag kan spara pengar på odla egen mat, du får inte skriva mer än 256 tecken";
 
