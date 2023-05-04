@@ -1,5 +1,6 @@
 {
     "require": {
-        "orhanerday/open-ai": "^4.7"
+        "orhanerday/open-ai": "^4.7",
+        "guzzlehttp/guzzle": "^7.5"
     }
 }

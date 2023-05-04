@@ -14,12 +14,21 @@ global $wpdb;
 // Function to create a new post
 function generate_wordpress_article() {
     global $wpdb;
-    $open_ai = new OpenAi('');
+    $open_ai = new OpenAi(MY_API_KEY);
     
+    $unsplashApi = MY_API_KEY_2;
     
+    $client = new GuzzleHttp\Client();
+
+$response = $client->request('GET', "https://api.unsplash.com/search/photos?query=göteborg&client_id={$unsplashApi}");
+  $data = json_decode($response->getBody(), true);
+$fetchPicture = $data['results'][0]['urls']['thumb'];
+	
+	$jpg = '.jpg';
+$image_url = $fetchPicture . $jpg;
       // Fetch data from the database table
       $result = $wpdb->get_results("SELECT * FROM TestDataSparTips WHERE isPresented = 0 ORDER BY ID ASC LIMIT 1");
-      //$result = $wpdb->get_results("SELECT * FROM TestDataSparTips WHERE Id = 5");
+   
       if (!$result) {
           return false;
       }
@@ -28,7 +37,7 @@ function generate_wordpress_article() {
       $post_content = $result[0]->Article;
       $post_id = $result[0]->Id;
 
-      $test = "kulattkriga";
+      $test = "degådfsdfrbranu";
       $idConvertedToInt = intval($post_id);
      $updateDb = $wpdb->update(
         'TestDataSparTips',
@@ -47,7 +56,7 @@ function generate_wordpress_article() {
     );
      
     
-     /* $prompt = "Ge mig ett spartips kopplat till denna titel {$post_title} som hjälper mig att spara pengar, du får inte skriva mer än 256 tecken";
+      $prompt = "Ge mig ett spartips kopplat till denna titel {$post_title} som hjälper mig att spara pengar, du får inte skriva mer än 256 tecken";
       $complete = $open_ai->completion([
         'model' => 'text-davinci-003',
         'prompt' => $prompt,
@@ -59,11 +68,12 @@ function generate_wordpress_article() {
         
     ]);
 
-    $gptarr = json_decode($complete, true);
-    $generatedArticle = $gptarr['choices'][0]['text'];*/
 
-    $generatedArticle = "Skönt att inte slösa api";
-     
+    $gptarr = json_decode($complete, true);
+    $generatedArticle = $gptarr['choices'][0]['text']; 
+
+   // $generatedArticle = "Skönt att inte slösa api";
+    
 
   // Kontrollera om ett inlägg med samma titel redan finns
   $existing_post = get_page_by_title($post_title, OBJECT, 'post');
@@ -71,13 +81,40 @@ function generate_wordpress_article() {
       return false;
   }
 
-        // Create the new post
-        $post_id = wp_insert_post(array(
-            'post_title' => $post_title,
-            'post_content' => $generatedArticle,
-            'post_status' => 'publish',
-            'post_type' => 'post'
-        ));
+
+//Skapa det nya inlägget och inkludera kategorin
+$post_id = wp_insert_post(array(
+    'post_title' => $post_title,
+    'post_content' => $generatedArticle,
+    'post_status' => 'draft',
+    'post_type' => 'post',
+
+));
+
+// Tilldela en bild till inlägget
+
+$upload_dir = wp_upload_dir(); // Hämta uppladdningsmappen
+$image_data = file_get_contents($image_url); // Hämta bildens data
+$filename = basename($image_url); // Hämta filnamnet
+$unique_file_name = wp_unique_filename( $upload_dir['path'], $filename ); // Generera ett unikt filnamn
+$file_path = $upload_dir['path'] . '/' . $unique_file_name; // Generera sökvägen till den uppladdade filen
+file_put_contents( $file_path, $image_data ); // Ladda upp bilden till servern
+$wp_filetype = wp_check_filetype( $filename, null ); // Hämta filtypen för bilden
+$attachment = array(
+'post_mime_type' => $wp_filetype['type'],
+'post_title' => $filename,
+'post_content' => '',
+'post_status' => 'inherit'
+);
+$attachment_id = wp_insert_attachment( $attachment, $file_path, $post_id ); // Lägg till bild som bilaga till inlägget
+$attachment_data = wp_generate_attachment_metadata( $attachment_id, $file_path ); // Generera metadata för bilagan
+wp_update_attachment_metadata( $attachment_id, $attachment_data ); // Uppdatera metadata för bilagan
+set_post_thumbnail( $post_id, $attachment_id ); // Tilldela bilden som utvald bild för inlägget
+
+
+
+// Set the post terms (category)
+wp_set_post_terms($post_id, array('spartips-test'), 'category');
 
         // Check if the post was created successfully
         if ($post_id == 0) {
@@ -85,32 +122,10 @@ function generate_wordpress_article() {
         }
 }
     
-/*function schedule_cron_event() {
-  /*  wp_clear_scheduled_hook('publish_test');
-    if ( ! wp_next_scheduled( 'publish_test' ) ) {
-        wp_schedule_single_event( time(), 'publish_test' );
-    }*/
-
- // Get the current time
- /*$current_time = current_time('timestamp');
-    
- // Set the desired time of day for the event
- $event_time = strtotime('7:17pm', $current_time);
- 
- // Schedule the event to occur at the desired time every day
- wp_schedule_event($event_time, 'daily', 'publish_test');
-
-
-  }*/
-  
-
-
-
 
   // Hook the CRON event to our function
   add_action('publish_test', 'generate_wordpress_article');
   
-  // Schedule the CRON event
-  //schedule_cron_event();
+
 
 ?>
